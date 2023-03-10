@@ -1,4 +1,10 @@
-import { collection, getDocs } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDocs,
+  increment,
+  writeBatch,
+} from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useRecoilState } from "recoil";
@@ -45,9 +51,80 @@ const useCommunityData = () => {
     setLoading(false);
   };
 
-  const joinCommunity = (communityData: Community) => {};
+  const joinCommunity = async (communityData: Community) => {
+    // below are the 2 batch writes:
+    // creating a new community snipper for the user.
+    // updating the number of members on the community document.
 
-  const leaveCommunity = (communityId: string) => {};
+    setLoading(true);
+
+    try {
+      const batch = writeBatch(firestore);
+      const newSnippet: CommunitySnippet = {
+        communityId: communityData.id,
+        imageUrl: communityData.imageUrl || "",
+      };
+
+      batch.set(
+        doc(
+          firestore,
+          `users/${user?.uid}/communitySnippets`,
+          communityData.id
+        ),
+        newSnippet
+      );
+
+      batch.update(doc(firestore, "communities", communityData.id), {
+        numberOfMembers: increment(1),
+      });
+
+      await batch.commit();
+
+      setCommunityStatevalue((prev) => ({
+        ...prev,
+        mySnippets: [...prev.mySnippets, newSnippet],
+      }));
+    } catch (err: any) {
+      console.log("joinCommunity error: ", error);
+      setError(err.message);
+    }
+
+    setLoading(false);
+  };
+
+  const leaveCommunity = async (communityId: string) => {
+    // below are the 2 batch writes:
+    // deleting community snipper for the user.
+    // updating the number of members on the community document.
+
+    setLoading(true);
+
+    try {
+      const batch = writeBatch(firestore);
+
+      batch.delete(
+        doc(firestore, `users/${user?.uid}/communitySnippets`, communityId)
+      );
+
+      batch.update(doc(firestore, "communities", communityId), {
+        numberOfMembers: increment(-1),
+      });
+
+      await batch.commit();
+
+      setCommunityStatevalue((prev) => ({
+        ...prev,
+        mySnippets: prev.mySnippets.filter(
+          (item) => item.communityId != communityId
+        ),
+      }));
+    } catch (err: any) {
+      console.log("leaveCommunity error : ", err);
+      setError(err.message);
+    }
+
+    setLoading(false);
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -57,7 +134,7 @@ const useCommunityData = () => {
   return {
     communityStateValue,
     onJoinOrLeave,
-    loading
+    loading,
   };
 };
 
