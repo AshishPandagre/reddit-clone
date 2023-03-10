@@ -3,9 +3,9 @@ import React, { useState } from "react";
 import { BiPoll } from "react-icons/bi";
 import { BsLink45Deg, BsMic } from "react-icons/bs";
 import { IoDocumentText, IoImageOutline } from "react-icons/io5";
-import { AiFillCloseCircle } from "react-icons/ai";
-import TabItem from "./TabItem";
+import ImageUpload from "./PostForm/ImageUpload";
 import TextInputs from "./PostForm/TextInputs";
+import TabItem from "./TabItem";
 
 type NewPostFormProps = {};
 
@@ -44,11 +44,21 @@ const NewPostForm: React.FC<NewPostFormProps> = () => {
     body: "",
   });
   const [selectedFile, setSelectedFile] = useState<string>();
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(false);
 
   const handleCreatePost = async () => {};
 
-  const onSelectImage = async () => {};
+  const onSelectImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const reader = new FileReader();
+    if (event.target.files?.[0]) {
+      reader.readAsDataURL(event.target.files[0]);
+    }
+
+    reader.onload = (readerEvent) => {
+      if (readerEvent.target?.result)
+        setSelectedFile(readerEvent.target.result as string);
+    };
+  };
 
   const onTextChange = async (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -67,6 +77,7 @@ const NewPostForm: React.FC<NewPostFormProps> = () => {
       <Flex width="100%">
         {formTabs.map((item) => (
           <TabItem
+            key={item.title}
             item={item}
             selected={item.title === selectedTab}
             setSelectedTab={setSelectedTab}
@@ -74,12 +85,22 @@ const NewPostForm: React.FC<NewPostFormProps> = () => {
         ))}
       </Flex>
       <Flex p={4}>
-        <TextInputs
-          textInputs={textInputs}
-          handleCreatePost={handleCreatePost}
-          loading={loading}
-          onChange={onTextChange}
-        />
+        {selectedTab == "Post" && (
+          <TextInputs
+            textInputs={textInputs}
+            handleCreatePost={handleCreatePost}
+            loading={loading}
+            onChange={onTextChange}
+          />
+        )}
+        {selectedTab == "Images & Videos" && (
+          <ImageUpload
+            selectedFile={selectedFile}
+            onSelectImage={onSelectImage}
+            setSelectedFile={setSelectedFile}
+            setSelectedTab={setSelectedTab}
+          />
+        )}
       </Flex>
     </Flex>
   );
